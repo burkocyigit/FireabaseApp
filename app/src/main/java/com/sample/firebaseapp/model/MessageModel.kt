@@ -4,9 +4,7 @@ data class MessageModel(
     var userName: String?,
     var userId: String?,
     var message: String?,
-    var messageTime: String?,
-    var messageId: String?,
-    var isDeleted: Boolean?
+    var messageTime: String?
 ) {
-    constructor(): this("","","","","",false)
+    constructor(): this("","","","")
 }

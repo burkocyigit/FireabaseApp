@@ -1,7 +1,6 @@
 package com.sample.firebaseapp.chat.ui
 
 import android.app.Application
-import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -26,8 +25,6 @@ class GroupChatViewModel(application: Application) : AndroidViewModel(applicatio
 
     private var userModel: UserModel? = null
 
-    private var clickedMessageModel: MessageModel? = null
-
     init {
         FirebaseHelper.getCurrentUserModel {
             userModel = it
@@ -37,7 +34,7 @@ class GroupChatViewModel(application: Application) : AndroidViewModel(applicatio
     fun sendMessage(message: String?, requestListener: RequestListener) {
         val key = databaseReference.child("GroupChats").push().key
         val messageModel =
-            MessageModel(userModel?.name, userModel?.userId, message, getCurrentTime(), key, false)
+            MessageModel(userModel?.name, userModel?.userId, message, getCurrentTime())
         key?.let { chatKey ->
             databaseReference.child("GroupChats").child(chatKey).setValue(messageModel)
                 .addOnCompleteListener { task ->
@@ -53,52 +50,23 @@ class GroupChatViewModel(application: Application) : AndroidViewModel(applicatio
     fun fetchMessageList(requestListener: RequestListener) {
         databaseReference.child("GroupChats").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                messageList?.clear()
                 for (dsp in snapshot.children) {
                     if (dsp.value != null) {
                         val message = dsp.getValue(MessageModel::class.java)
-                        message?.let {
-                            messageList?.add(message)
+                        message?.let { messageModel ->
+                            if ((messageList?.contains(messageModel)) != true) {
+                                messageList?.add(messageModel)
+                            }
                         }
-                        requestListener.onSuccess()
                     }
                 }
+                requestListener.onSuccess()
             }
 
             override fun onCancelled(error: DatabaseError) {
                 requestListener.onFailed(Exception(error.toException()))
             }
         })
-    }
-
-    fun removeMessage(requestListener: RequestListener) {
-        databaseReference.child("GroupChats").child(clickedMessageModel?.messageId ?: "")
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val messageIndex = messageList?.indexOfFirst { it == clickedMessageModel }
-                    snapshot.ref.child("deleted").setValue(true).addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            messageList?.get(messageIndex ?: 0)?.isDeleted = true
-                            requestListener.onSuccess()
-                        } else {
-                            task.exception?.let { requestListener.onFailed(it) }
-                        }
-                    }
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    requestListener.onFailed(error.toException())
-                }
-
-            })
-    }
-
-    fun setClickedMessageModel(messageModel: MessageModel?) {
-        clickedMessageModel = messageModel
-    }
-
-    fun getSelectedMessageModel(): MessageModel? {
-        return clickedMessageModel
     }
 
     fun getMessageList(): ArrayList<MessageModel>? {
@@ -113,5 +81,4 @@ class GroupChatViewModel(application: Application) : AndroidViewModel(applicatio
     fun getUserId(): String? {
         return userModel?.userId
     }
-
 }

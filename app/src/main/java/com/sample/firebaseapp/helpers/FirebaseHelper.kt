@@ -10,15 +10,10 @@ import com.sample.firebaseapp.model.UserModel
 
 object FirebaseHelper {
 
-    private val reference = Firebase.database.reference
-
     fun getCurrentUserModel(callback: (UserModel?) -> Unit) {
         if (Firebase.auth.currentUser != null) {
-            reference.child("Users").child(Firebase.auth.currentUser?.uid ?: "")
-                //BURADA SINGLE EVENT KULLANMAMIZ GEREKIYOR YOKSA
-                //APP BOYUNCA KULLANICIDA YAPTIĞIMIZ TÜM DEĞİŞİKLİKLER BURAYI
-                //TETIKLIYOR VE BU FONKSIYONUN ILK KULLANILDIĞI YERİ AÇIYOR.
-                .addListenerForSingleValueEvent(object : ValueEventListener {
+            Firebase.database.reference.child("Users").child(Firebase.auth.currentUser?.uid ?: "")
+                .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         callback(snapshot.getValue(UserModel::class.java))
                     }
@@ -30,19 +25,5 @@ object FirebaseHelper {
         } else {
             callback(null)
         }
-    }
-
-
-    fun getUserModelWithUserId(userId: String?, callback: (UserModel?) -> Unit) {
-        reference.child("Users").child(userId ?: "")
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    callback(snapshot.getValue(UserModel::class.java))
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    callback(null)
-                }
-            })
     }
 }
